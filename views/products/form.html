@@ -1,0 +1,36 @@
+<div class="container">
+	<div class="row">
+		<div class="col-md-4 col-md-offset-4">
+			<h1>Product</h1>
+			
+			<form role="form" enctype="multipart/form-data" ng-submit="saveProduct()">
+				<div class="form-group">
+					<label for="name">Name</label>
+					<input type="text" name="name" id="name" class="form-control"
+					       required maxlength="225"
+					       ng-model="product.name">
+				</div>
+				<div class="form-group">
+					<label for="description">Description</label>
+					<textarea name="description" id="description" class="form-control" rows="5" 
+					          maxlength="2000"
+					          ng-model="product.description"></textarea>
+				</div>
+				<div class="form-group">
+					<label for="picture">Picture</label>
+					<input type="file" name="picture" id="picture">
+				</div>
+
+				<div class="form-group">
+					<div class="alert alert-danger" ng-repeat="validationError in validationErrors">
+						{{ validationError.message }}
+					</div>
+				</div>
+
+				<div class="form-group">
+					<button type="submit" class="btn btn-info col-md-6 col-md-offset-6">Save</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>

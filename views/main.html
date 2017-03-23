@@ -1,0 +1,42 @@
+<div class="container">
+	<div class="row">
+		<div class="col-md-10 col-md-offset-1">
+			<h1>Products</h1>
+			<span ng-if="products.length == 0">No products added yet</span>
+			<table class="table table-striped" ng-if="products.length > 0">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Description</th>
+						<th>Picture</th>
+						<th>Created at</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="product in products">
+						<td>{{ product.name }}</td>
+						<td style="word-break: break-all;">{{ product.description }}</td>
+						<td>
+							<img ng-src="/images/products/picture/default.png"
+							 	 alt="Product image"
+						     	 width="120px"
+						     	 height="120px"
+						     	 class="img-thumbnail">
+						</td>
+						<td>{{ product.created_at | date : 'dd-MM-yyyy, HH:mm:ss' }}</td>
+						<td>
+							<div ng-if="user.id != undefined && user.id == product.user.id ">
+								<div ng-if="!product.deleted">
+									<button class="btn btn-danger" ng-click="deleteProduct(product.id)">Delete</button>
+									<div><a href="/edit_product/{{ product.id }}">Edit product</a></div>
+								</div>
+								<div ng-if="product.deleted">Deleted</div>
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
