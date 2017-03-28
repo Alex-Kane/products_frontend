@@ -1,41 +1,52 @@
-var productsApp = angular.module('productsApp', ['ngRoute', 'ngFlash']);
+var productsApp = angular.module('productsApp', ['ui.router', 'ngFlash']);
 
-productsApp.config(['$routeProvider', '$locationProvider', function($routeProvide, $locationProvider) {
+productsApp.config(function($stateProvider, $urlRouterProvider, $locationProvider) {
 	$locationProvider.html5Mode({
 		enabled: true,
 		requireBase: false
 	});
-	$routeProvide
-		.when('/', {
+	$stateProvider
+		.state({
+			name: 'main',
+			url: '/',
 			templateUrl: 'views/main.html',
 			controller: 'mainCtrl'
 		})
-		.when('/create_product', {
+		.state({
+			name: 'create_product',
+			url: '/create_product',
 			templateUrl: 'views/products/form.html',
 			controller: 'createProductCtrl'
 		})
-		.when('/edit_product/:productId', {
+		.state({
+			name: 'edit_product',
+			url: '/edit_product/{productId}',
 			templateUrl: 'views/products/form.html',
 			controller: 'editProductCtrl'
 		})
-		.when('/login', {
+		.state({
+			name: 'login',
+			url: '/login',
 			templateUrl: 'views/user/login_form.html',
 			controller: 'loginCtrl'
 		})
-		.when('/signup', {
+		.state({
+			name: 'signup',
+			url: '/signup',
 			templateUrl: 'views/user/signup_form.html',
 			controller: 'signupCtrl'
-		})
-		.otherwise({
-			redirectTo: '/'
 		});
-}]);
+	$urlRouterProvider.otherwise('/');
+});
 
-var SERVER_NAME = 'http://productsapi.frb.io/api/login_check';
+var SERVER_NAME = 'http://productsapi2.frb.io/api';
 
-productsApp.factory('$user', function($http) {
+productsApp.run(function($user) {
+	$user.refresh();
+});
+
+productsApp.factory('$user', function($http, $rootScope) {
 	var user = {};
-	refreshUser();
 
 	function refreshUser() {
 		var config = {
@@ -43,15 +54,17 @@ productsApp.factory('$user', function($http) {
 				'Authorization': 'Bearer ' + localStorage.getItem('token')
 			}
 		};
-
+		$rootScope.isAppInit = false;
 		$http.get(SERVER_NAME + '/users/current', config).then(
 			function success(response) {
 				for (var key in response.data) {
 					user[key] = response.data[key];
 				}
+				$rootScope.isAppInit = true;
 			},
 			function error(response) {
 				flushUser();
+				$rootScope.isAppInit = true;
 			}
 		);
 	}
@@ -101,7 +114,7 @@ productsApp.controller('mainCtrl', function($scope, $http, $user, Flash) {
 				function success(response) {
 					$scope.products.forEach(function(item, i, arr) {
 						if (item.id == id) {
-							item.deleted = true;
+							arr.splice(i, 1);
 						}
 					});
 					Flash.create('success', 'Product was deleted');
@@ -110,15 +123,35 @@ productsApp.controller('mainCtrl', function($scope, $http, $user, Flash) {
 				}
 			);
 		}
-	}
+	};
+
+	var currentSortField = 'created_at';
+
+	$scope.sortBy = function(field) {
+		if (currentSortField == field) {
+			$scope.products.reverse();
+			return;
+		}
+		currentSortField = field;
+		$scope.products.sort(function(a, b) {
+			if (a[field] > b[field] || b[field] == null && a[field] != null) {
+				return 1;
+			}
+			if (a[field] < b[field] || a[field] == null && b[field] != null) {
+				return -1;
+			}
+			return 0;
+		});
+	};
 });
 
 productsApp.controller('createProductCtrl', function($scope, $http, $location, $user, Flash) {
-	if ($user.user.id == undefined) {
-		Flash.create('danger', 'You must be logged in to create products');
-		$location.url('/login');
-		return;
-	}
+	$scope.$watch('isAppInit', function() {
+		if ($scope.isAppInit && $user.user.id == undefined) {
+			Flash.create('danger', 'You must be logged in to create products');
+			$location.url('/login');
+		}
+	});
 
 	$scope.saveProduct = function() {
 		var config = {
@@ -143,14 +176,15 @@ productsApp.controller('createProductCtrl', function($scope, $http, $location, $
 	};
 });
 
-productsApp.controller('editProductCtrl', function($scope, $http, $routeParams, $location, $user, Flash) {
-	if ($user.user.id == undefined) {
-		Flash.create('danger', 'You must be logged in to edit products');
-		$location.url('/login');
-		return;
-	}
+productsApp.controller('editProductCtrl', function($scope, $http, $stateParams, $location, $user, Flash) {
+	$scope.$watch('isAppInit', function() {
+		if ($scope.isAppInit && $user.user.id == undefined) {
+			Flash.create('danger', 'You must be logged in to edit products');
+			$location.url('/login');
+		}
+	});
 
-	$http.get(SERVER_NAME + '/products/' + $routeParams.productId).then(
+	$http.get(SERVER_NAME + '/products/' + $stateParams.productId).then(
 		function success(response) {
 			if ($user.user.id == undefined || response.data.user.id != $user.user.id) {
 				Flash.create('danger', 'You can\'t edit this product');
@@ -187,6 +221,13 @@ productsApp.controller('editProductCtrl', function($scope, $http, $routeParams, 
 });
 
 productsApp.controller('loginCtrl', function($scope, $http, $location, $user, Flash) {
+	$scope.$watch('isAppInit', function() {
+		if ($scope.isAppInit && $user.user.id != undefined) {
+			Flash.create('danger', 'You are already logged in');
+			$location.url('/');
+		}
+	});
+
 	$scope.login = function() {
 		$http.post(SERVER_NAME + '/login_check', $scope.user).then(
 			function success(response) {
@@ -205,7 +246,14 @@ productsApp.controller('loginCtrl', function($scope, $http, $location, $user, Fl
 	};
 });
 
-productsApp.controller('signupCtrl', function($scope, $http, $location, Flash) {
+productsApp.controller('signupCtrl', function($scope, $http, $location, $user, Flash) {
+	$scope.$watch('isAppInit', function() {
+		if ($scope.isAppInit && $user.user.id != undefined) {
+			Flash.create('danger', 'You need log out first');
+			$location.url('/');
+		}
+	});
+
 	$scope.signup = function() {
 		$http.post(SERVER_NAME + '/users', $scope.user).then(
 			function success(response) {
