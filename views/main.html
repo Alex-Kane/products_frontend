@@ -21,7 +21,7 @@
 						<td style="word-break: break-all;">{{ product.description }}</td>
 						<td>{{ product.created_at | date : 'dd-MM-yyyy, HH:mm:ss' }}</td>
 						<td>
-							<img ng-src="/images/products/picture/default.png"
+							<img ng-src="http://localhost:8001/{{ product.picture }}"
 							 	 alt="Product image"
 						     	 width="120px"
 						     	 height="120px"
