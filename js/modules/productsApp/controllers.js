@@ -39,10 +39,25 @@ productsApp.config(function($stateProvider, $urlRouterProvider, $locationProvide
 	$urlRouterProvider.otherwise('/');
 });
 
-var SERVER_NAME = 'http://productsapi2.frb.io/api';
+var SERVER_NAME = 'http://localhost:8001/api';
 
 productsApp.run(function($user) {
 	$user.refresh();
+});
+
+productsApp.directive('appFile', function() {
+	return {
+		link: function (scope, elem, attrs) {
+			elem.bind('change', function(event) {
+				scope.$apply(function() {
+					if (scope.product == undefined) {
+						scope.product = {};
+					}
+					scope.product.picture = event.target.files[0];
+				});
+			});
+		}
+	};
 });
 
 productsApp.factory('$user', function($http, $rootScope) {
@@ -156,11 +171,21 @@ productsApp.controller('createProductCtrl', function($scope, $http, $location, $
 	$scope.saveProduct = function() {
 		var config = {
 			headers: {
-				'Authorization': 'Bearer ' + localStorage.getItem('token')
+				'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				'Content-Type': undefined
 			}
 		};
 
-		$http.post(SERVER_NAME + '/products', $scope.product, config).then(
+		var form = new FormData();
+		form.append('name', $scope.product.name);
+		if ($scope.product.description != undefined) {
+			form.append('description', $scope.product.description);
+		}
+		if ($scope.product.picture != undefined) {
+			form.append('picture', $scope.product.picture);
+		}
+
+		$http.post(SERVER_NAME + '/products', form, config).then(
 			function success(response) {
 				Flash.create('success', 'Product was created');
 				$location.url('/');
@@ -201,11 +226,22 @@ productsApp.controller('editProductCtrl', function($scope, $http, $stateParams, 
 	$scope.saveProduct = function() {
 		var config = {
 			headers: {
-				'Authorization': 'Bearer ' + localStorage.getItem('token')
+				'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				'Content-Type': undefined
 			}
 		};
 
-		$http.put(SERVER_NAME + '/products/' + $scope.product.id, $scope.product, config).then(
+		var form = new FormData();
+		form.append('name', $scope.product.name);
+		if ($scope.product.description != undefined) {
+			form.append('description', $scope.product.description);
+		}
+		if ($scope.product.picture != undefined) {
+			form.append('picture', $scope.product.picture);
+		}
+		form.append('_method', 'PUT');
+
+		$http.post(SERVER_NAME + '/products/' + $scope.product.id, form, config).then(
 			function success(response) {
 				Flash.create('success', 'Product was saved');
 				$location.url('/');
